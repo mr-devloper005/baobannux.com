@@ -6,53 +6,100 @@ import { SITE_CONFIG } from '@/lib/site-config'
 import { globalContent } from '@/editable/content/global.content'
 import { useEditableLocalAuthSession } from '@/editable/components/EditableLocalAuthForms'
 
+// Public label for the pdf task — the Reference Library is the ONLY task
+// surface exposed publicly and the only task link this footer renders.
+const LIBRARY = { label: 'Reference Library', href: '/pdf' }
+
 export function EditableFooter() {
-  const taskLinks = SITE_CONFIG.tasks.filter((task) => task.enabled)
   const year = new Date().getFullYear()
   const { session, logout } = useEditableLocalAuthSession()
 
   return (
-    <footer className="border-t border-[var(--editable-border)] bg-[var(--editable-footer-bg)] text-[var(--editable-footer-text)]">
-      <div className="h-[2px] bg-[linear-gradient(90deg,transparent_0%,var(--slot4-accent)_50%,transparent_100%)]" />
-      <div className="mx-auto grid max-w-[var(--editable-container)] gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1.2fr_1fr_1fr] lg:px-8">
+    <footer className="bg-[var(--editable-footer-bg)] text-[var(--editable-footer-text)]">
+      {/* CTA strip */}
+      <div className="mx-auto w-full max-w-[var(--editable-container)] px-6 pt-20 sm:px-10 lg:px-14 lg:pt-28">
+        <div className="flex flex-col items-start justify-between gap-8 border-b border-[var(--editable-dark-border)] pb-16 lg:flex-row lg:items-end">
+          <h2 className="editable-display max-w-2xl text-[2.4rem] font-bold leading-[1.02] tracking-[-0.03em] sm:text-[3.4rem]">
+            Open the library. Find your next reference.
+          </h2>
+          <Link
+            href={LIBRARY.href}
+            className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[var(--slot4-accent-fill)] px-7 py-3.5 text-sm font-semibold text-[var(--slot4-on-accent)] transition hover:brightness-[0.96]"
+          >
+            Browse the {LIBRARY.label} <ArrowUpRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </div>
+
+      <div className="mx-auto grid w-full max-w-[var(--editable-container)] gap-12 px-6 py-16 sm:px-10 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:px-14">
         <div>
           <Link href="/" className="inline-flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center border border-[var(--slot4-accent)]/40 bg-[var(--slot4-surface-bg)]">
-              <img src="/favicon.png?v=20260413" alt={SITE_CONFIG.name} className="h-8 w-8 object-contain" />
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--slot4-accent-fill)]">
+              <img src="/favicon.png?v=20260413" alt={SITE_CONFIG.name} className="h-11 w-11 object-contain" />
             </span>
-            <span className="editable-display text-xl font-semibold tracking-[0.01em]">{SITE_CONFIG.name}</span>
+            <span className="editable-display text-xl font-bold tracking-[-0.02em]">{SITE_CONFIG.name}</span>
           </Link>
-          <p className="mt-4 max-w-md text-sm leading-7 text-[var(--slot4-muted-text)]">{globalContent.footer?.description || SITE_CONFIG.description}</p>
+          <p className="mt-5 max-w-sm text-sm leading-7 text-[var(--editable-footer-text)]/70">
+            {globalContent.footer?.description || SITE_CONFIG.description}
+          </p>
+          
         </div>
 
-        <div>
-          <h3 className="text-[10px] font-semibold uppercase tracking-[0.26em] text-[var(--slot4-accent)]">Explore</h3>
-          <div className="mt-4 grid gap-2">
-            {taskLinks.map((task) => (
-              <Link key={task.key} href={task.route} className="inline-flex items-center gap-2 text-sm font-medium text-[var(--slot4-muted-text)] transition hover:text-[var(--slot4-page-text)]">
-                {task.label} <ArrowUpRight className="h-3.5 w-3.5" />
-              </Link>
-            ))}
-          </div>
-        </div>
+        <FooterColumn title="Discover" links={[LIBRARY, { label: 'Search', href: '/search' }]} />
+        <FooterColumn title="Resources" links={[{ label: 'About', href: '/about' }, { label: 'Contact', href: '/contact' }]} />
 
         <div>
-          <h3 className="text-[10px] font-semibold uppercase tracking-[0.26em] text-[var(--slot4-accent)]">Site</h3>
-          <div className="mt-4 grid gap-2">
-            {[
-              ['About', '/about'],
-              ['Contact', '/contact'],
-              ...(session ? [['Create', '/create']] : [['Login', '/login'], ['Sign up', '/signup']]),
-            ].map(([label, href]) => (
-              <Link key={href} href={href} className="text-sm font-medium text-[var(--slot4-muted-text)] transition hover:text-[var(--slot4-page-text)]">{label}</Link>
-            ))}
-            {session ? <button type="button" onClick={logout} className="text-left text-sm font-medium text-[var(--slot4-muted-text)] transition hover:text-[var(--slot4-page-text)]">Logout</button> : null}
+          <h3 className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[var(--editable-footer-text)]/50">Account</h3>
+          <div className="mt-5 grid gap-3">
+            {(session ? [{ label: 'Submit', href: '/create' }] : [{ label: 'Sign in', href: '/login' }, { label: 'Get started', href: '/signup' }]).map(
+              (item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-sm font-medium text-[var(--editable-footer-text)]/70 transition hover:text-[var(--editable-footer-text)]"
+                >
+                  {item.label}
+                </Link>
+              )
+            )}
+            {session ? (
+              <button
+                type="button"
+                onClick={logout}
+                className="text-left text-sm font-medium text-[var(--editable-footer-text)]/70 transition hover:text-[var(--editable-footer-text)]"
+              >
+                Logout
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
-      <div className="border-t border-[var(--editable-border)] px-4 py-5 text-center text-xs font-medium tracking-[0.12em] text-[var(--slot4-muted-text)]">
-        © {year} {SITE_CONFIG.name}. All rights reserved.
+
+      <div className="border-t border-[var(--editable-dark-border)]">
+        <div className="mx-auto flex w-full max-w-[var(--editable-container)] flex-col items-center justify-between gap-2 px-6 py-6 text-xs text-[var(--editable-footer-text)]/55 sm:flex-row sm:px-10 lg:px-14">
+          <span>© {year} {SITE_CONFIG.name}. All rights reserved.</span>
+          <span>{globalContent.footer?.bottomNote || 'Built for clean discovery.'}</span>
+        </div>
       </div>
     </footer>
+  )
+}
+
+function FooterColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {
+  return (
+    <div>
+      <h3 className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[var(--editable-footer-text)]/50">{title}</h3>
+      <div className="mt-5 grid gap-3">
+        {links.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--editable-footer-text)]/70 transition hover:text-[var(--editable-footer-text)]"
+          >
+            {link.label}
+          </Link>
+        ))}
+      </div>
+    </div>
   )
 }

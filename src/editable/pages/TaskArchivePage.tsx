@@ -9,8 +9,17 @@ import { taskPageMetadata } from '@/config/site.content'
 import { taskPageVoices } from '@/editable/content/task-pages.content'
 import { EditableSiteShell } from '@/editable/shell/EditableSiteShell'
 import { getTaskTheme, taskThemeStyle } from '@/editable/theme/task-themes'
+import { Ads, getSlotSizes } from '@/lib/ads'
 
 export const revalidate = 3
+
+const pickRandom = (sizes: string[]) => sizes[Math.floor(Math.random() * sizes.length)]
+
+// Public display labels + item nouns (the pdf archive is the only public one).
+const displayLabelFor = (task: TaskKey, fallback: string) =>
+  task === 'pdf' ? 'Reference Library' : task === 'profile' ? 'Contributor' : fallback
+const itemNounFor = (task: TaskKey, plural: boolean) =>
+  task === 'pdf' ? (plural ? 'references' : 'reference') : plural ? 'posts' : 'post'
 
 export const taskMetadata = (task: TaskKey, path: string) =>
   buildTaskMetadata(task, {
@@ -90,7 +99,8 @@ export function TaskArchiveView({ task, posts, pagination, category, basePath }:
   const voice = taskPageVoices[task]
   const theme = getTaskTheme(task)
   const page = pagination.page || 1
-  const label = taskConfig?.label || task
+  const label = displayLabelFor(task, taskConfig?.label || task)
+  const itemNoun = itemNounFor(task, posts.length !== 1)
   const categoryLabel = category === 'all' ? 'All categories' : CATEGORY_OPTIONS.find((item) => item.slug === category)?.name || category
 
   return (
@@ -116,9 +126,17 @@ export function TaskArchiveView({ task, posts, pagination, category, basePath }:
               </div>
             ) : null}
 
-            <div className="mt-12 flex flex-col gap-4 border-t border-[var(--tk-line)] pt-6 sm:flex-row sm:items-center sm:justify-between">
+            {/* Reference Library (pdf) archive → header ad (exactly one). No ad
+                on any other archive surface (e.g. the profile feed). */}
+            {task === 'pdf' ? (
+              <div className="mt-10">
+                <Ads slot="header" size={pickRandom(getSlotSizes('header'))} showLabel className="mx-auto w-full" />
+              </div>
+            ) : null}
+
+            <div className="mt-10 flex flex-col gap-4 border-t border-[var(--tk-line)] pt-6 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-[var(--tk-muted)]">
-                <span className="font-semibold text-[var(--tk-text)]">{posts.length}</span> {posts.length === 1 ? 'post' : 'posts'} · {categoryLabel}
+                <span className="font-semibold text-[var(--tk-text)]">{posts.length}</span> {itemNoun} · {categoryLabel}
               </p>
               <form action={basePath} className="flex items-center gap-2.5">
                 <div className="relative">
@@ -148,7 +166,7 @@ export function TaskArchiveView({ task, posts, pagination, category, basePath }:
             <div className="mx-auto max-w-xl rounded-[var(--tk-radius)] border border-dashed border-[var(--tk-line)] bg-[var(--tk-surface)] px-8 py-16 text-center">
               <Search className="mx-auto h-7 w-7 text-[var(--tk-muted)]" />
               <h2 className="editable-display mt-5 text-2xl font-semibold tracking-[-0.02em]">Nothing here yet</h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--tk-muted)]">Try another category, or check back after new {label.toLowerCase()} are published.</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--tk-muted)]">Try another collection, or check back soon — new {itemNounFor(task, true)} are added regularly.</p>
             </div>
           )}
 
@@ -321,17 +339,22 @@ function BookmarkArchiveCard({ post, href, index }: { post: SitePost; href: stri
 }
 
 function PdfArchiveCard({ post, href }: { post: SitePost; href: string }) {
-  const category = getCategory(post, 'Document')
+  const category = getCategory(post, 'General')
+  const fileSize = getField(post, ['fileSize', 'size', 'filesize'])
+  const pages = getField(post, ['pages', 'pageCount', 'numPages'])
   return (
-    <Link href={href} className={`${cardBase} flex flex-col p-6 sm:p-7`}>
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--tk-accent-soft)] text-[var(--tk-accent)]"><FileText className="h-6 w-6" /></div>
-        <span className="rounded-full border border-[var(--tk-line)] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--tk-muted)]">{category}</span>
+    <Link href={href} className={`${cardBase} flex flex-col overflow-hidden`}>
+      {/* Reference glyph header — no photography */}
+      <div className="relative flex aspect-[16/10] items-center justify-center bg-[var(--slot4-accent-soft)]">
+        <FileText className="h-14 w-14 text-[var(--slot4-accent-strong)]" strokeWidth={1.3} />
+        <span className="absolute right-4 top-4 rounded-full bg-[var(--tk-text)] px-3 py-1 editable-mono text-[10px] uppercase tracking-[0.12em] text-[var(--tk-bg)]">{fileSize || 'File'}</span>
       </div>
-      <h2 className="editable-display mt-6 text-xl font-semibold leading-snug tracking-[-0.02em]">{post.title}</h2>
-      <RatingLine post={post} />
-      <p className="mt-3 line-clamp-3 flex-1 text-sm leading-7 text-[var(--tk-muted)]">{getSummary(post)}</p>
-      <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--tk-accent)]">Open document <Download className="h-4 w-4" /></span>
+      <div className="flex flex-1 flex-col p-6 sm:p-7">
+        <span className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[var(--tk-muted)]">{category}{pages ? ` · ${pages} pages` : ''}</span>
+        <h2 className="editable-display mt-2 line-clamp-2 text-xl font-bold leading-snug tracking-[-0.02em]">{post.title}</h2>
+        <p className="mt-3 line-clamp-2 flex-1 text-sm leading-6 text-[var(--tk-muted)]">{getSummary(post)}</p>
+        <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--tk-text)] underline decoration-[var(--slot4-accent-fill)] decoration-2 underline-offset-[6px] transition group-hover:gap-2.5">Open reference <Download className="h-4 w-4" /></span>
+      </div>
     </Link>
   )
 }
