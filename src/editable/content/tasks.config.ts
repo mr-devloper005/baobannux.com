@@ -1,7 +1,7 @@
 import type { TaskKey } from "@/lib/site-config";
 
 export const slot4TaskSupport = {
-  article: false,
+  article: true,
   classified: false,
   sbm: false,
   profile: true,
